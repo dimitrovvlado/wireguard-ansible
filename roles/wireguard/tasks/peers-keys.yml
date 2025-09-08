@@ -1,0 +1,22 @@
+# tasks/peers-keys.yml
+
+# Read server public key
+- name: Read server public key
+  slurp:
+    src: "/home/{{ vpn_user.name }}/conf/public.key"
+  register: peers__wg_public_key
+- name: Set WireGuard public key variable
+  set_fact:
+    peers__wg_public_key_content: "{{ peers__wg_public_key.content | b64decode }}"
+
+# Generate keys and configs for each peer using include_tasks + loop
+- name: Generate client keys and configuration
+  include_tasks: peers-configs.yml
+  loop: "{{ wireguard.peers }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    item: "{{ item }}"
+    server_ip: "{{ wireguard.server_ip }}"
+    server_public_key: "{{ peers__wg_public_key_content }}"
+    listen_port: "{{ wireguard.listen_port }}"

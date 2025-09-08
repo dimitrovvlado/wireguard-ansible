@@ -1,0 +1,50 @@
+# tasks/server-keys.yml
+
+# Generate server keys
+- name: Generate WireGuard private key (if missing)
+  become_user: "{{ vpn_user.name }}"
+  command: wg genkey
+  register: wg_private
+  args:
+    creates: /home/{{ vpn_user.name }}/conf/private.key
+
+# Save private key if no key exists yet
+- name: Save private key
+  become_user: "{{ vpn_user.name }}"
+  copy:
+    content: "{{ wg_private.stdout }}"
+    dest: /home/{{ vpn_user.name }}/conf/private.key
+    owner: "{{ vpn_user.name }}"
+    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
+    mode: '0600'
+  when: wg_private is changed
+
+# Generate public key
+- name: Generate public key from private key
+  become_user: "{{ vpn_user.name }}"
+  shell: "wg pubkey < /home/{{ vpn_user.name }}/conf/private.key"
+  register: wg_public
+  args:
+    creates: "/home/{{ vpn_user.name }}/conf/public.key"
+
+# Save public key if no key exists yet
+- name: Save public key
+  become_user: "{{ vpn_user.name }}"
+  copy:
+    content: "{{ wg_public.stdout }}"
+    dest: /home/{{ vpn_user.name }}/conf/public.key
+    owner: "{{ vpn_user.name }}"
+    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
+    mode: '0644'
+  when: wg_public is changed
+
+# Read the private key
+- name: Read private key from remote host
+  become_user: "{{ vpn_user.name }}"
+  slurp:
+    src: "/home/{{ vpn_user.name }}/conf/private.key"
+  register: wg_private_key
+
+- name: Set WireGuard private key variable
+  set_fact:
+    wg_private_key_content: "{{ wg_private_key.content | b64decode }}"

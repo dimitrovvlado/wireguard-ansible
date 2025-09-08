@@ -1,0 +1,83 @@
+# Ensure peer folder exists
+- name: Ensure peer folder {{ item.name }} exists
+  become_user: "{{ vpn_user.name }}"
+  file:
+    path: /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}
+    state: directory
+    owner: "{{ vpn_user.name }}"
+    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
+    mode: '0700'
+
+# Generate private key for the peer if it doesn't exist
+- name: Generate private key for peer {{ item.name }}
+  become_user: "{{ vpn_user.name }}"
+  shell: "wg genkey > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+  args:
+    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+  register: client_private_file
+
+# Generate public key from private key file
+- name: Generate public key for peer {{ item.name }}
+  become_user: "{{ vpn_user.name }}"
+  shell: "wg pubkey < /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+  args:
+    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+  register: client_public_file
+
+# Generate preshared key if it doesn't exist
+- name: Generate preshared key for peer {{ item.name }}
+  become_user: "{{ vpn_user.name }}"
+  shell: "wg genpsk > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+  args:
+    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+  register: client_psk_file
+
+# Read private key into a variable
+- name: Read private key for peer {{ item.name }}
+  slurp:
+    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+  register: client_private_raw
+
+- name: Set WireGuard private key variable
+  set_fact:
+    peer_private_key: "{{ client_private_raw.content | b64decode | trim }}"
+
+# Read public key into a variable
+- name: Read public key for peer {{ item.name }}
+  slurp:
+    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+  register: client_public_raw
+
+- name: Set WireGuard public key variable
+  set_fact:
+    peer_public_key: "{{ client_public_raw.content | b64decode }}"
+
+# Read preshared key into a variable
+- name: Read preshared key for peer {{ item.name }}
+  slurp:
+    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+  register: client_psk_raw
+
+- name: Set WireGuard preshared key variable
+  set_fact:
+    peer_preshared_key: "{{ client_psk_raw.content | b64decode }}"
+
+# Create the client configuration file
+- name: Create peer configuration file
+  become: true
+  template:
+    src: client.conf.j2
+    dest: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/tunnel.config"
+    owner: root
+    group: root
+    mode: '0600'
+  vars:
+    peer:
+      name: "{{ item.name }}"
+      address: "{{ item.address }}"
+      dns: "{{ item.dns }}"
+      allowed_ips: "{{ item.allowed_ips }}"
+      keep_alive: "{{ item.keep_alive }}"
+      private_key: "{{ peer_private_key }}"
+      public_key: "{{ peer_public_key }}"
+      preshared_key: "{{ peer_preshared_key }}"

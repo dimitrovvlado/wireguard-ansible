@@ -1,0 +1,26 @@
+trusted_ips:
+  - "127.0.0.1'
+
+vpn_user:
+  name: vpnadmin
+  shell: /bin/bash
+  groups: sudo
+  create_home: yes
+  # password will be prompted securely at runtime
+
+wireguard:
+  server_ip: 8.8.8.1
+  interface: wg0
+  listen_port: 51820
+  network_cidr: 10.0.0.1/24
+  peers:
+    - name: iPhone
+      address: 10.0.0.2/24
+      allowed_ips: "10.0.0.2/32"
+      dns: "10.0.0.1, 64.6.64.6"
+      keep_alive: "25"
+    - name: MacBook Pro
+      address: 10.0.0.3/24
+      allowed_ips: "10.0.0.3/32"
+      dns: "10.0.0.1, 64.6.64.6"
+      keep_alive: "25"

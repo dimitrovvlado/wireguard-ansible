@@ -1,0 +1,7 @@
+# sydney-play.yml
+- hosts: sydney
+  become: true
+  roles:
+    - ssh-hardening
+    - user-management
+    - wireguard

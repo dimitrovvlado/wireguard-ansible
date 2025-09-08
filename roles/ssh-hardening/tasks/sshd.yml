@@ -1,0 +1,23 @@
+- name: Ensure root login disabled by default
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+    backrefs: yes
+
+- name: Allow root login only from trusted IPs
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - root login exception"
+    block: |
+      {% for ip in trusted_ips %}
+      Match Address {{ ip }}
+          PermitRootLogin yes
+      {% endfor %}
+    insertafter: EOF
+
+- name: Restart sshd if config changed
+  service:
+    name: ssh
+    state: restarted

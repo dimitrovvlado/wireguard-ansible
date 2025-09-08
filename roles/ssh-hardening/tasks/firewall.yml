@@ -1,0 +1,48 @@
+---
+- name: Ensure UFW is installed
+  apt:
+    name: ufw
+    state: present
+    update_cache: yes
+
+# Remove all existing rules to enforce the correct order of rules
+- name: Reset UFW to default
+  shell: ufw --force reset
+  ignore_errors: yes
+
+# Then explicitly allow SSH from trusted IPs
+- name: Allow SSH from trusted IPs
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+    src: "{{ item }}"
+  loop: "{{ trusted_ips }}"
+  loop_control:
+    label: "{{ item }}"
+
+# Allow WireGuard port from anywhere
+- name: Allow WireGuard port from anywhere
+  ufw:
+    rule: allow
+    port: "{{ wireguard.listen_port }}"
+    proto: udp
+
+# Deny SSH from everywhere first (to prevent leaks)
+- name: Deny SSH from all
+  ufw:
+    rule: deny
+    port: '22'
+    proto: tcp
+
+# Deny all other incoming connections
+- name: Deny all other incoming connections
+  ufw:
+    direction: incoming
+    policy: deny
+
+# Enable UFW (make sure it survives reboots)
+- name: Enable UFW
+  ufw:
+    state: enabled
+    logging: on

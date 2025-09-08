@@ -1,0 +1,11 @@
+# tasks/validate-peers.yml
+
+- name: Check for duplicate peer names
+  set_fact:
+    peer_names: "{{ wireguard.peers | map(attribute='name') | list }}"
+
+- name: Fail if duplicate peer names exist
+  fail:
+    msg: "Duplicate WireGuard peer names found: {{ peer_names | select('duplicate') | list }}"
+  when: peer_names | unique | length != peer_names | length
+  
