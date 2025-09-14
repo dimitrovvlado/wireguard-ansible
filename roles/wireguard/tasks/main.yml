@@ -9,33 +9,17 @@
     force: yes
   tags: install
 
-# Ensure VPN user exists
-- name: Ensure VPN user exists
-  user:
-    name: "{{ vpn_user.name }}"
-    shell: "{{ vpn_user.shell | default('/bin/bash') }}"
-    groups: "{{ vpn_user.groups | default(omit) }}"
-    create_home: "{{ vpn_user.create_home | default(true) }}"
-
-# Ensure clients folder exists
-- name: Create config directory
-  become_user: "{{ vpn_user.name }}"
+# Ensure config folder exists
+- name: Create WireGuard config and clients directories
   file:
-    path: "/home/{{ vpn_user.name }}/conf"
+    path: "{{ item }}"
     state: directory
-    owner: "{{ vpn_user.name }}"
-    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
     mode: '0700'
+  loop:
+    - "{{ wireguard.root }}/conf"
+    - "{{ wireguard.root }}/conf/clients"
 
-- name: Create clients directory
-  become_user: "{{ vpn_user.name }}"
-  file:
-    path: "/home/{{ vpn_user.name }}/conf/clients"
-    state: directory
-    owner: "{{ vpn_user.name }}"
-    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
-    mode: '0700'
-
+# Ensure IPv4 is enabled
 - name: Ensure IPv4 forwarding is enabled persistently
   ansible.builtin.sysctl:
     name: net.ipv4.ip_forward

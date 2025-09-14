@@ -1,41 +1,35 @@
 # Ensure peer folder exists
 - name: Ensure peer folder {{ item.name }} exists
-  become_user: "{{ vpn_user.name }}"
   file:
-    path: /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}
+    path: /{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}
     state: directory
-    owner: "{{ vpn_user.name }}"
-    group: "{{ vpn_user.groups | default(vpn_user.name) }}"
     mode: '0700'
 
 # Generate private key for the peer if it doesn't exist
 - name: Generate private key for peer {{ item.name }}
-  become_user: "{{ vpn_user.name }}"
-  shell: "wg genkey > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+  shell: "wg genkey > /{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
   args:
-    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+    creates: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
   register: client_private_file
 
 # Generate public key from private key file
 - name: Generate public key for peer {{ item.name }}
-  become_user: "{{ vpn_user.name }}"
-  shell: "wg pubkey < /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+  shell: "wg pubkey < /{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key > /{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
   args:
-    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+    creates: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
   register: client_public_file
 
 # Generate preshared key if it doesn't exist
 - name: Generate preshared key for peer {{ item.name }}
-  become_user: "{{ vpn_user.name }}"
-  shell: "wg genpsk > /home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+  shell: "wg genpsk > /{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
   args:
-    creates: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+    creates: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
   register: client_psk_file
 
 # Read private key into a variable
 - name: Read private key for peer {{ item.name }}
   slurp:
-    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
+    src: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/private.key"
   register: client_private_raw
 
 - name: Set WireGuard private key variable
@@ -45,7 +39,7 @@
 # Read public key into a variable
 - name: Read public key for peer {{ item.name }}
   slurp:
-    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+    src: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
   register: client_public_raw
 
 - name: Set WireGuard public key variable
@@ -55,7 +49,7 @@
 # Read preshared key into a variable
 - name: Read preshared key for peer {{ item.name }}
   slurp:
-    src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
+    src: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/preshared.key"
   register: client_psk_raw
 
 - name: Set WireGuard preshared key variable
@@ -67,7 +61,7 @@
   become: true
   template:
     src: client.conf.j2
-    dest: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/tunnel.config"
+    dest: "/{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/tunnel.config"
     owner: root
     group: root
     mode: '0600'

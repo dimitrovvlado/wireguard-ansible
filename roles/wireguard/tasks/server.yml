@@ -7,12 +7,10 @@
       file:
         path: /etc/wireguard
         state: directory
-        owner: root
-        group: root
         mode: '0700'
     - name: Enrich peer definitions with public keys from remote host
       slurp:
-        src: "/home/{{ vpn_user.name }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
+        src: "{{ wireguard.root }}/conf/clients/{{ item.name | replace(' ', '_') }}/public.key"
       register: peer_public_keys
       loop: "{{ wireguard.peers }}"
       loop_control:

@@ -3,7 +3,7 @@
 # Read server public key
 - name: Read server public key
   slurp:
-    src: "/home/{{ vpn_user.name }}/conf/public.key"
+    src: "{{ wireguard.root }}/conf/public.key"
   register: peers__wg_public_key
 - name: Set WireGuard public key variable
   set_fact:
