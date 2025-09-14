@@ -1,6 +1,1 @@
-- name: Create vpnadmin user
-  user:
-    name: vpnadmin
-    groups: sudo
-    create_home: yes
-    shell: /bin/bash
+# tasks/main.yml
